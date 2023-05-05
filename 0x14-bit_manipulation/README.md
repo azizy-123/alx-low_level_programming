@@ -1,1 +1,1 @@
-this is bit
+this is readme
