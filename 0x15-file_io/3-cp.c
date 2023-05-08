@@ -20,7 +20,7 @@ char *allocate_buffer(char *filename)
 
 	if (!buffer)
 	{
-		/* Prints error message if buffer allocation fails */
+		/* Prints error mesage if buffer allocation failes */
 		dprintf(STDERR_FILENO, "Error: Can't write to %s\n", filename);
 		exit(99);
 	}
@@ -41,7 +41,7 @@ void close_file_descriptor(int fd)
 	if (result == -1)
 	{
 		/* Print error message if file descriptor closing fails */
-		perror("close");
+		dprintf(STDERR_FILENO, "Error: Can't close fd %d\n", fd);
 		exit(100);
 	}
 }
@@ -70,44 +70,29 @@ int main(int argc, char *argv[])
 	buffer = allocate_buffer(argv[2]);
 	/* Open source file for reading */
 	file_from = open(argv[1], O_RDONLY);
-	if (file_from == -1)
-	{
-		/* Print error message if open() fails */
-		perror("open");
-		free(buffer);
-		exit(98);
-	}
-	/* Open destination file for writing */
+	/* Read 1024 bytes from source file into buffer */
+	my_read = read(file_from, buffer, 1024);
+	/* Open destination file for writing -rw-r--r-, with those permissions */
 	file_to = open(argv[2], O_CREAT | O_WRONLY | O_TRUNC, 0644);
-	if (file_to == -1)
-	{
-		/* Print error message if open() fails */
-		perror("open");
-		free(buffer);
-		exit(99);
-	}
 	do {
-		/* Read 1024 bytes from source file into buffer */
-		my_read = read(file_from, buffer, 1024);
-		/* Print error message if read() fails */
-		if (my_read == -1)
+		/* Print error message if reading from source file fails */
+		if (file_from == -1 || my_read == -1)
 		{
-			perror("read");
+			dprintf(STDERR_FILENO,
+					"Error: Can't read from file %s\n", argv[1]);
 			free(buffer);
-			close_file_descriptor(file_from);
-			close_file_descriptor(file_to);
 			exit(98);
 		}
 		my_write = write(file_to, buffer, my_read);
-		/* Print error message if write() fails */
-		if (my_write == -1)
+		/* Print error message if writing to destination file fails */
+		if (file_to == -1 || my_write == -1)
 		{
-			perror("write");
+			dprintf(STDERR_FILENO, "Error: Can't write to %s\n", argv[2]);
 			free(buffer);
-			close_file_descriptor(file_from);
-			close_file_descriptor(file_to);
 			exit(99);
 		}
+		my_read = read(file_from, buffer, 1024);
+		file_to = open(argv[2], O_WRONLY | O_APPEND);
 	} while (my_read > 0);
 	free(buffer);
 	close_file_descriptor(file_from);
@@ -115,4 +100,3 @@ int main(int argc, char *argv[])
 	/* If successful, return 0 */
 	return (0);
 }
-
